@@ -1,3 +1,10 @@
+import Workspace from "../components/Workspace";
+
 export default function Add() {
-  return <div>Hello this is the add page</div>
+  return (
+      <>
+        <div className="btn">Hello World</div>
+        <Workspace />
+      </>
+    )
 }
