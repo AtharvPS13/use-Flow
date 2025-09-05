@@ -1,56 +1,93 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function WorkspaceManager() {
   const [workspaces, setWorkspaces] = useState([])
   const [workspaceName, setWorkspaceName] = useState('')
+  const [actionInputs, setActionInputs] = useState({})
+  const nextId = useRef(1)
 
   useEffect(() => {
     window.electronAPI.loadWorkspaces().then((ws) => {
-      if (ws) setWorkspaces(ws)
+      if (ws) {
+        ws.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0))
+        setWorkspaces(ws)
+        const inputs = {}
+        let maxId = 0
+        ws.forEach((w) => {
+          inputs[w.id] = { type: 'chrome', value: '' }
+          if (w.id > maxId) maxId = w.id
+        })
+        setActionInputs(inputs)
+        nextId.current = maxId + 1
+      }
     })
   }, [])
 
+  const saveAll = (ws) => window.electronAPI.saveWorkspaces(ws)
+
   const addWorkspace = (name) => {
     if (!name) return alert('Enter a workspace name!')
-    setWorkspaces([...workspaces, { name, actions: [] }])
-    saveAll([...workspaces, { name, actions: [] }])
+    const newWorkspace = { id: nextId.current++, name, actions: [], lastOpened: Date.now() }
+    const newWorkspaces = [newWorkspace, ...workspaces]
+    setWorkspaces(newWorkspaces)
+    saveAll(newWorkspaces)
+    setWorkspaceName('')
+    setActionInputs((prev) => ({ ...prev, [newWorkspace.id]: { type: 'chrome', value: '' } }))
   }
 
-  const addAction = async (wsIndex, type, value) => {
+  const handleInputChange = (workspaceId, field, val) => {
+    setActionInputs((prev) => ({
+      ...prev,
+      [workspaceId]: { ...prev[workspaceId], [field]: val }
+    }))
+  }
+
+  const addAction = async (workspaceId) => {
+    const { type, value } = actionInputs[workspaceId] || {}
+    let finalValue = value
     if (type === 'vscode') {
       const pickedFile = await window.electronAPI.pickFile()
       if (!pickedFile) return
-      value = pickedFile
+      finalValue = pickedFile
     }
-    if (!value) return alert('Enter a value!')
+    if (!finalValue) return alert('Enter a value!')
+    const updatedWorkspaces = workspaces.map((ws) =>
+      ws.id === workspaceId ? { ...ws, actions: [...ws.actions, { type, value: finalValue }] } : ws
+    )
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
+    handleInputChange(workspaceId, 'value', '')
+  }
 
-    const newWorkspaces = [...workspaces]
-    newWorkspaces[wsIndex].actions.push({ type, value })
-    setWorkspaces(newWorkspaces)
-    saveAll(newWorkspaces)
+  const deleteWorkspace = (workspaceId) => {
+    const updatedWorkspaces = workspaces.filter((ws) => ws.id !== workspaceId)
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
+    setActionInputs((prev) => {
+      const newInputs = { ...prev }
+      delete newInputs[workspaceId]
+      return newInputs
+    })
+  }
+
+  const deleteAction = (workspaceId, actionIndex) => {
+    const updatedWorkspaces = workspaces.map((ws) =>
+      ws.id === workspaceId
+        ? { ...ws, actions: ws.actions.filter((_, i) => i !== actionIndex) }
+        : ws
+    )
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
   }
 
   const startWorkspace = (ws) => {
     window.electronAPI.startWorkspace(ws)
-  }
-
-  const deleteWorkspace = (wsIndex) => {
-    const newWorkspaces = workspaces.filter((_, i) => i !== wsIndex)
-    setWorkspaces(newWorkspaces)
-    saveAll(newWorkspaces)
-  }
-
-  const deleteAction = (wsIndex, actionIndex) => {
-    const newWorkspaces = [...workspaces]
-    newWorkspaces[wsIndex].actions = newWorkspaces[wsIndex].actions.filter(
-      (_, i) => i !== actionIndex
+    const updatedWorkspaces = workspaces.map((w) =>
+      w.id === ws.id ? { ...w, lastOpened: Date.now() } : w
     )
-    setWorkspaces(newWorkspaces)
-    saveAll(newWorkspaces)
-  }
-
-  const saveAll = (ws) => {
-    window.electronAPI.saveWorkspaces(ws)
+    updatedWorkspaces.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0))
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
   }
 
   const getActionIcon = (type) => {
@@ -68,168 +105,121 @@ function WorkspaceManager() {
 
   return (
     <div className="min-h-screen bg-base-100" data-theme="synthwave">
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="container mx-auto p-6 max-w-4xl">
         {/* Header */}
-        <div className="mb-16 text-center">
-          <h1 className="text-5xl font-thin text-transparent bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text mb-4">
-            Workspace Manager
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+            useFlow
           </h1>
-          <p className="text-base-content/60 text-lg font-light tracking-wide">
-            Streamline your neon-powered development environment
-          </p>
+          <p className="text-base-content/70">Workspace automation for developers</p>
         </div>
 
         {/* Create Workspace */}
-        <div className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-primary/20 shadow-lg shadow-primary/10">
-          <div className="flex gap-4 items-center">
-            <input
-              value={workspaceName}
-              onChange={(e) => setWorkspaceName(e.target.value)}
-              placeholder="Enter workspace name..."
-              className="input bg-base-200/50 border border-primary/30 rounded-xl flex-1 text-lg placeholder-base-content/50 focus:border-primary focus:shadow-lg focus:shadow-primary/20 transition-all duration-300"
-            />
-            <button
-              onClick={() => {
-                const name = workspaceName.trim()
-                addWorkspace(name)
-                setWorkspaceName('') // clear after add
-              }}
-              className="btn btn-primary rounded-xl px-8 font-normal shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all duration-300"
-            >
-              Create
-            </button>
+        <div className="card bg-base-200 shadow-xl mb-6 border border-primary/20">
+          <div className="card-body">
+            <h2 className="card-title text-primary">⚡ Create New Workspace</h2>
+            <div className="flex gap-3">
+              <input
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                placeholder="Workspace name (e.g., React Project)"
+                className="input input-bordered input-primary flex-1"
+              />
+              <button
+                onClick={() => addWorkspace(workspaceName.trim())}
+                className="btn btn-primary"
+              >
+                + Add
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Workspaces */}
-        {workspaces.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="w-20 h-20 mx-auto mb-8 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 flex items-center justify-center border border-primary/30 shadow-lg shadow-primary/20">
-              <span className="text-3xl">🚀</span>
+        <div className="space-y-6">
+          {workspaces.length === 0 && (
+            <div className="card bg-base-200 shadow-xl border border-secondary/20 text-center p-6">
+              <div className="text-6xl mb-4">🚀</div>
+              <h3 className="text-xl font-bold text-secondary">No workspaces yet</h3>
+              <p className="text-base-content/70">Create your first workspace to get started!</p>
             </div>
-            <h3 className="text-2xl font-light text-secondary mb-3">No workspaces yet</h3>
-            <p className="text-base-content/60">Create your first neon workspace to get started</p>
-          </div>
-        ) : (
-          <div className="grid gap-8">
-            {workspaces.map((ws, i) => (
-              <div
-                key={i}
-                className="bg-gradient-to-r from-base-200/50 to-base-300/30 backdrop-blur-sm rounded-2xl border border-accent/30 overflow-hidden hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/20 transition-all duration-500"
-              >
-                {/* Workspace Header */}
-                <div className="px-8 py-6 border-b border-accent/20 bg-gradient-to-r from-primary/10 to-secondary/10">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-primary to-secondary shadow-lg shadow-primary/50"></div>
-                      <h3 className="text-2xl font-light text-accent">{ws.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="badge badge-secondary badge-outline">
-                        {ws.actions.length} {ws.actions.length === 1 ? 'action' : 'actions'}
-                      </span>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete workspace "${ws.name}"?`)) {
-                            deleteWorkspace(i)
-                          }
-                        }}
-                        className="text-2xl btn btn-ghost btn-xs text-error hover:text-error hover:bg-error/20 hover:shadow-lg hover:shadow-error/30 rounded-full transition-all duration-300"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
+          )}
+
+          {workspaces.map((ws) => (
+            <div
+              key={ws.id}
+              className="card bg-base-200 shadow-xl border border-accent/20 hover:border-accent/40 transition-colors"
+            >
+              <div className="card-body">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="card-title text-accent text-2xl">💼 {ws.name}</h3>
+                  <div className="badge badge-secondary">{ws.actions.length} actions</div>
                 </div>
 
-                <div className="px-8 py-6">
-                  {/* Add Action */}
-                  <div className="mb-8 p-4 bg-base-300/30 rounded-xl border border-primary/20">
-                    <div className="flex gap-3 items-center">
-                      <select
-                        id={`actionType-${i}`}
-                        className="select select-bordered border-secondary/50 bg-base-200/70 focus:border-secondary focus:shadow-lg focus:shadow-secondary/20 rounded-lg"
-                      >
-                        <option value="chrome">🌐 Web</option>
-                        <option value="vscode">💻 Code</option>
-                        <option value="terminal">⚡ Terminal</option>
-                      </select>
-                      <input
-                        id={`actionValue-${i}`}
-                        placeholder="URL, file path, or command..."
-                        className="input input-bordered border-secondary/50 bg-base-200/70 flex-1 placeholder-base-content/50 focus:border-secondary focus:shadow-lg focus:shadow-secondary/20 rounded-lg"
-                      />
-                      <button
-                        onClick={() => {
-                          const type = document.getElementById(`actionType-${i}`).value
-                          const value = document.getElementById(`actionValue-${i}`).value.trim()
-                          addAction(i, type, value)
-                          document.getElementById(`actionValue-${i}`).value = ''
-                        }}
-                        className="btn btn-secondary rounded-lg px-6 hover:shadow-lg hover:shadow-secondary/30 transition-all duration-300"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Actions List */}
-                  {ws.actions.length > 0 && (
-                    <div className="space-y-3 mb-8">
-                      {ws.actions.map((action, j) => (
-                        <div
-                          key={j}
-                          className="group flex items-center justify-between p-4 bg-gradient-to-r from-base-200/40 to-base-300/30 rounded-xl border border-primary/20 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300"
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="text-xl filter drop-shadow-lg">
-                              {getActionIcon(action.type)}
-                            </span>
-                            <div>
-                              <div className="text-xs uppercase tracking-wider text-primary font-semibold mb-1">
-                                {action.type}
-                              </div>
-                              <div className="text-base-content/90 font-light break-all">
-                                {action.value}
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => deleteAction(i, j)}
-                            className="opacity-0 group-hover:opacity-100 btn btn-ghost btn-xs text-error hover:text-error hover:bg-error/20 hover:shadow-lg hover:shadow-error/30 rounded-full transition-all duration-300"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Start Button */}
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => startWorkspace(ws)}
-                      className="btn btn-accent rounded-xl px-8 font-normal shadow-lg shadow-accent/40 hover:shadow-accent/60 hover:scale-105 transition-all duration-300"
+                {/* Add Action */}
+                <div className="bg-base-300 p-4 rounded-lg mb-4">
+                  <h4 className="font-semibold text-primary mb-3">Add Action</h4>
+                  <div className="flex gap-2 flex-wrap">
+                    <select
+                      value={actionInputs[ws.id]?.type || 'chrome'}
+                      onChange={(e) => handleInputChange(ws.id, 'type', e.target.value)}
+                      className="select select-bordered select-sm"
                     >
-                      <span className="mr-2 text-lg">▶</span>
-                      Launch {ws.name}
+                      <option value="chrome">🌐 Chrome Tab</option>
+                      <option value="vscode">💻 VS Code File</option>
+                      <option value="terminal">⚡ Terminal</option>
+                    </select>
+                    <input
+                      value={actionInputs[ws.id]?.value || ''}
+                      onChange={(e) => handleInputChange(ws.id, 'value', e.target.value)}
+                      placeholder="Enter URL or File Path"
+                      className="input input-bordered input-sm flex-1 min-w-0"
+                    />
+                    <button onClick={() => addAction(ws.id)} className="btn btn-success btn-sm">
+                      Add
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
 
-        {/* Footer */}
-        <div className="text-center mt-20">
-          <p className="text-base-content/40 text-sm font-light tracking-wide">
-            Built with 💜 for synthwave developers
-          </p>
+                {/* Actions List */}
+                {ws.actions.map((action, j) => (
+                  <div
+                    key={j}
+                    className="flex items-center justify-between bg-base-100 p-3 rounded-lg border border-base-300 mb-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{getActionIcon(action.type)}</span>
+                      <div>
+                        <div className="font-medium text-sm uppercase tracking-wide text-primary">
+                          {action.type}
+                        </div>
+                        <div className="text-base-content/80 break-all">{action.value}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteAction(ws.id, j)}
+                      className="btn btn-ghost btn-xs text-error hover:bg-error/20"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+                {/* Workspace Controls */}
+                <div className="flex gap-3 justify-end mt-2">
+                  <button onClick={() => startWorkspace(ws)} className="btn btn-primary">
+                    ▶ Start
+                  </button>
+                  <button onClick={() => deleteWorkspace(ws.id)} className="btn btn-error">
+                    🗑 Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   )
 }
-
 export default WorkspaceManager
