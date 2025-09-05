@@ -27,7 +27,12 @@ function WorkspaceManager() {
 
   const addWorkspace = (name) => {
     if (!name) return alert('Enter a workspace name!')
-    const newWorkspace = { id: nextId.current++, name, actions: [], lastOpened: Date.now() }
+    const newWorkspace = {
+      id: nextId.current++,
+      name,
+      actions: [],
+      lastOpened: Date.now()
+    }
     const newWorkspaces = [newWorkspace, ...workspaces]
     setWorkspaces(newWorkspaces)
     saveAll(newWorkspaces)
