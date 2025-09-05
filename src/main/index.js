@@ -1,10 +1,46 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const { exec } = require('child_process')
 const path = require('path')
+const blocker = require("../../src/main/appblocker.js");
 const fs = require('fs')
 
 const dataPath = path.join(app.getPath('userData'), 'workspaces.json')
 console.log('workspaces are being stored at : ', dataPath)
+
+//LIST OF BLOCKED APPS
+const BLOCKED_APPS = [
+    'firefox',
+    'spotify',
+    'discord'
+];
+
+async function syncBlocklistWithDaemon() {
+  try {
+    console.log("Connecting to app-blocker daemon to sync list...");
+    // This is the only part that can fail if the service isn't running.
+    await blocker.clear(); 
+    console.log("Connected! Cleared existing daemon blocklist.");
+
+    // If we connected, proceed to add the apps.
+    for (const appName of BLOCKED_APPS) {
+      await blocker.add(appName);
+      console.log(`Added "${appName}" to daemon blocklist.`);
+    }
+
+    const finalList = await blocker.list();
+    console.log("Sync complete. Current daemon blocklist:", finalList);
+    return true; // Indicate success
+
+  } catch (err) {
+    // This block runs if we failed to connect.
+    console.error("Failed to connect to app-blocker daemon.", err.message);
+    dialog.showErrorBox(
+        "Background Service Not Running",
+        "Could not connect to the app-blocker service.\n\nPlease run the following command in your terminal:\n\nsudo systemctl start app-blocker.service"
+    );
+    return false; // Indicate failure
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -36,8 +72,31 @@ function createWindow() {
   }
 }
 
-// App event handlers
-app.whenReady().then(createWindow)
+//Interacts with app.jsx
+ipcMain.handle('appblock:list', async () => await blocker.list());
+ipcMain.handle('appblock:add',  async (e, name) => await blocker.add(name));
+ipcMain.handle('appblock:remove', async (e, name) => await blocker.remove(name));
+ipcMain.handle('appblock:pause', async () => await blocker.pause());
+ipcMain.handle('appblock:resume', async () => await blocker.resume());
+ipcMain.handle('appblock:clear', async () => await blocker.clear());
+
+// REPLACE your old app.whenReady() block with this (APP EVENT HANDLERS NEW)
+app.whenReady().then(async () => {
+    // Try to connect and sync.
+    const success = await syncBlocklistWithDaemon();
+
+    // Only open the app window if the background service is running.
+    if (success) {
+        createWindow();
+    } else {
+        // If the service isn't running, quit the app after showing the error.
+        app.quit();
+    }
+    
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -145,3 +204,15 @@ ipcMain.on('start-workspace', (_, workspace) => {
     }, index * 500) // Stagger launches by 500ms
   })
 })
+
+// ADD THIS NEW SECTION
+// This clears the blocklist on exit, which is good practice.
+app.on('will-quit', async () => {
+  try {
+    console.log("App is quitting. Clearing the daemon's blocklist...");
+    await blocker.clear();
+    console.log("Daemon blocklist has been cleared.");
+  } catch (err) {
+    // Ignore errors here, as the daemon might already be stopped.
+  }
+});

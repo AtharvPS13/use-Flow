@@ -4,6 +4,19 @@ import Edit from './pages/Edit'
 import Home from './pages/Home'
 
 function App() {
+  // useEffect(() => {
+  //   // Equivalent of your addAndList()
+  //   async function testBlocker() {
+  //     console.log(await window.appBlocker.add("chromium"));
+  //     console.log(await window.appBlocker.list());
+  //   }
+  //   testBlocker();
+  // }, []);
+
+  // const handleOpenApp = () => {
+  //   window.electronAPI.openApp("gedit");
+  // };
+  
   return (
     <HashRouter>
       <Routes>
