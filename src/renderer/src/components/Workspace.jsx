@@ -43,21 +43,30 @@ function WorkspaceManager() {
   }
 
   const addAction = async (workspaceId) => {
-    const { type, value } = actionInputs[workspaceId] || {}
-    let finalValue = value
-    if (type === 'vscode') {
-      const pickedFile = await window.electronAPI.pickFile()
-      if (!pickedFile) return
-      finalValue = pickedFile
-    }
-    if (!finalValue) return alert('Enter a value!')
-    const updatedWorkspaces = workspaces.map((ws) =>
-      ws.id === workspaceId ? { ...ws, actions: [...ws.actions, { type, value: finalValue }] } : ws
-    )
-    setWorkspaces(updatedWorkspaces)
-    saveAll(updatedWorkspaces)
-    handleInputChange(workspaceId, 'value', '')
+  const { type, value } = actionInputs[workspaceId] || {}
+  let finalValue = value
+
+  if (type === 'file') {
+    const pickedFile = await window.electronAPI.pickFile()
+    if (!pickedFile) return
+    finalValue = pickedFile
+  } else if (type === 'vscode') {
+    const picked = await window.electronAPI.pickFileOrFolder()
+    if (!picked) return
+    finalValue = picked
   }
+
+  if (!finalValue) return alert('Enter a value!')
+
+  const updatedWorkspaces = workspaces.map((ws) =>
+    ws.id === workspaceId ? { ...ws, actions: [...ws.actions, { type, value: finalValue }] } : ws
+  )
+
+  setWorkspaces(updatedWorkspaces)
+  saveAll(updatedWorkspaces)
+  handleInputChange(workspaceId, 'value', '')
+}
+
 
   const deleteWorkspace = (workspaceId) => {
     const updatedWorkspaces = workspaces.filter((ws) => ws.id !== workspaceId)
@@ -93,6 +102,7 @@ function WorkspaceManager() {
       case 'chrome': return '🌐'
       case 'vscode': return '💻'
       case 'terminal': return '⚡'
+      case 'file': return '📁'
       default: return '📝'
     }
   }
@@ -152,6 +162,7 @@ function WorkspaceManager() {
                       <option value="chrome">🌐 Chrome Tab</option>
                       <option value="vscode">💻 VS Code File</option>
                       <option value="terminal">⚡ Terminal</option>
+                      <option value="file">📁 File</option>
                     </select>
                     <input
                       value={actionInputs[ws.id]?.value || ''}
