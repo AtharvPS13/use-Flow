@@ -190,5 +190,4 @@ function WorkspaceManager() {
     </div>
   )
 }
-
 export default WorkspaceManager
