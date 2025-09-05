@@ -27,7 +27,12 @@ function WorkspaceManager() {
 
   const addWorkspace = (name) => {
     if (!name) return alert('Enter a workspace name!')
-    const newWorkspace = { id: nextId.current++, name, actions: [], lastOpened: Date.now() }
+    const newWorkspace = {
+      id: nextId.current++,
+      name,
+      actions: [],
+      lastOpened: Date.now()
+    }
     const newWorkspaces = [newWorkspace, ...workspaces]
     setWorkspaces(newWorkspaces)
     saveAll(newWorkspaces)
@@ -81,7 +86,9 @@ function WorkspaceManager() {
 
   const deleteAction = (workspaceId, actionIndex) => {
     const updatedWorkspaces = workspaces.map((ws) =>
-      ws.id === workspaceId ? { ...ws, actions: ws.actions.filter((_, i) => i !== actionIndex) } : ws
+      ws.id === workspaceId
+        ? { ...ws, actions: ws.actions.filter((_, i) => i !== actionIndex) }
+        : ws
     )
     setWorkspaces(updatedWorkspaces)
     saveAll(updatedWorkspaces)
@@ -104,6 +111,15 @@ function WorkspaceManager() {
       case 'terminal': return '⚡'
       case 'file': return '📁'
       default: return '📝'
+
+      case 'chrome':
+        return '🌐'
+      case 'vscode':
+        return '💻'
+      case 'terminal':
+        return '⚡'
+      default:
+        return '📝'
     }
   }
 
@@ -112,7 +128,6 @@ function WorkspaceManager() {
       <div className="container mx-auto p-6 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">useFlow</h1>
           <p className="text-base-content/70">Workspace automation for developers</p>
         </div>
 
@@ -127,7 +142,12 @@ function WorkspaceManager() {
                 placeholder="Workspace name (e.g., React Project)"
                 className="input input-bordered input-primary flex-1"
               />
-              <button onClick={() => addWorkspace(workspaceName.trim())} className="btn btn-primary">+ Add</button>
+              <button
+                onClick={() => addWorkspace(workspaceName.trim())}
+                className="btn btn-primary"
+              >
+                + Add
+              </button>
             </div>
           </div>
         </div>
@@ -143,7 +163,10 @@ function WorkspaceManager() {
           )}
 
           {workspaces.map((ws) => (
-            <div key={ws.id} className="card bg-base-200 shadow-xl border border-accent/20 hover:border-accent/40 transition-colors">
+            <div
+              key={ws.id}
+              className="card bg-base-200 shadow-xl border border-accent/20 hover:border-accent/40 transition-colors"
+            >
               <div className="card-body">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="card-title text-accent text-2xl">💼 {ws.name}</h3>
@@ -170,28 +193,44 @@ function WorkspaceManager() {
                       placeholder="Enter URL or File Path"
                       className="input input-bordered input-sm flex-1 min-w-0"
                     />
-                    <button onClick={() => addAction(ws.id)} className="btn btn-success btn-sm">Add</button>
+                    <button onClick={() => addAction(ws.id)} className="btn btn-success btn-sm">
+                      Add
+                    </button>
                   </div>
                 </div>
 
                 {/* Actions List */}
                 {ws.actions.map((action, j) => (
-                  <div key={j} className="flex items-center justify-between bg-base-100 p-3 rounded-lg border border-base-300 mb-2">
+                  <div
+                    key={j}
+                    className="flex items-center justify-between bg-base-100 p-3 rounded-lg border border-base-300 mb-2"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{getActionIcon(action.type)}</span>
                       <div>
-                        <div className="font-medium text-sm uppercase tracking-wide text-primary">{action.type}</div>
+                        <div className="font-medium text-sm uppercase tracking-wide text-primary">
+                          {action.type}
+                        </div>
                         <div className="text-base-content/80 break-all">{action.value}</div>
                       </div>
                     </div>
-                    <button onClick={() => deleteAction(ws.id, j)} className="btn btn-ghost btn-xs text-error hover:bg-error/20">✕</button>
+                    <button
+                      onClick={() => deleteAction(ws.id, j)}
+                      className="btn btn-ghost btn-xs text-error hover:bg-error/20"
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))}
 
                 {/* Workspace Controls */}
                 <div className="flex gap-3 justify-end mt-2">
-                  <button onClick={() => startWorkspace(ws)} className="btn btn-primary">▶ Start</button>
-                  <button onClick={() => deleteWorkspace(ws.id)} className="btn btn-error">🗑 Delete</button>
+                  <button onClick={() => startWorkspace(ws)} className="btn btn-primary">
+                    ▶ Start
+                  </button>
+                  <button onClick={() => deleteWorkspace(ws.id)} className="btn btn-error">
+                    🗑 Delete
+                  </button>
                 </div>
               </div>
             </div>
