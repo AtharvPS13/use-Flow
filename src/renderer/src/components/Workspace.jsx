@@ -1,21 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function WorkspaceManager() {
   const [workspaces, setWorkspaces] = useState([])
+  const [workspaceName, setWorkspaceName] = useState('')
+  const workspaceRefs = useRef({})
 
+  // Load workspaces on mount
   useEffect(() => {
     window.electronAPI.loadWorkspaces().then((ws) => {
-      if (ws) setWorkspaces(ws)
+      if (ws) {
+        ws.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0))
+        setWorkspaces(ws)
+      }
     })
   }, [])
 
+  const saveAll = (ws) => window.electronAPI.saveWorkspaces(ws)
+
   const addWorkspace = (name) => {
     if (!name) return alert('Enter a workspace name!')
-    setWorkspaces([...workspaces, { name, actions: [] }])
-    saveAll([...workspaces, { name, actions: [] }])
+    const newWorkspace = { id: Date.now() + Math.random(), name, actions: [], lastOpened: Date.now() }
+    const newWorkspaces = [newWorkspace, ...workspaces]
+    setWorkspaces(newWorkspaces)
+    saveAll(newWorkspaces)
+    setWorkspaceName('')
   }
 
-  const addAction = async (wsIndex, type, value) => {
+  const addAction = async (workspaceId, type, value) => {
     if (type === 'vscode') {
       const pickedFile = await window.electronAPI.pickFile()
       if (!pickedFile) return
@@ -23,33 +34,45 @@ function WorkspaceManager() {
     }
     if (!value) return alert('Enter a value!')
 
-    const newWorkspaces = [...workspaces]
-    newWorkspaces[wsIndex].actions.push({ type, value })
-    setWorkspaces(newWorkspaces)
-    saveAll(newWorkspaces)
+    const updatedWorkspaces = workspaces.map((ws) => {
+      if (ws.id === workspaceId) return { ...ws, actions: [...ws.actions, { type, value }] }
+      return ws
+    })
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
+  }
+
+  const deleteWorkspace = (workspaceId) => {
+    const updatedWorkspaces = workspaces.filter((ws) => ws.id !== workspaceId)
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
+  }
+
+  const deleteAction = (workspaceId, actionIndex) => {
+    const updatedWorkspaces = workspaces.map((ws) => {
+      if (ws.id === workspaceId)
+        return { ...ws, actions: ws.actions.filter((_, i) => i !== actionIndex) }
+      return ws
+    })
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
   }
 
   const startWorkspace = (ws) => {
     window.electronAPI.startWorkspace(ws)
-  }
 
-  const deleteWorkspace = (wsIndex) => {
-    const newWorkspaces = workspaces.filter((_, i) => i !== wsIndex)
-    setWorkspaces(newWorkspaces)
-    saveAll(newWorkspaces)
-  }
-
-  const deleteAction = (wsIndex, actionIndex) => {
-    const newWorkspaces = [...workspaces]
-    newWorkspaces[wsIndex].actions = newWorkspaces[wsIndex].actions.filter(
-      (_, i) => i !== actionIndex
+    const updatedWorkspaces = workspaces.map((w) =>
+      w.id === ws.id ? { ...w, lastOpened: Date.now() } : w
     )
-    setWorkspaces(newWorkspaces)
-    saveAll(newWorkspaces)
-  }
+    updatedWorkspaces.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0))
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
 
-  const saveAll = (ws) => {
-    window.electronAPI.saveWorkspaces(ws)
+    // Scroll into view after re-render
+    setTimeout(() => {
+      const el = workspaceRefs.current[ws.id]
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
   }
 
   const getActionIcon = (type) => {
@@ -82,16 +105,13 @@ function WorkspaceManager() {
         <div className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-primary/20 shadow-lg shadow-primary/10">
           <div className="flex gap-4 items-center">
             <input
-              id="workspaceName"
+              value={workspaceName}
+              onChange={(e) => setWorkspaceName(e.target.value)}
               placeholder="Enter workspace name..."
               className="input bg-base-200/50 border border-primary/30 rounded-xl flex-1 text-lg placeholder-base-content/50 focus:border-primary focus:shadow-lg focus:shadow-primary/20 transition-all duration-300"
             />
             <button
-              onClick={() => {
-                const name = document.getElementById('workspaceName').value.trim()
-                addWorkspace(name)
-                document.getElementById('workspaceName').value = ''
-              }}
+              onClick={() => addWorkspace(workspaceName.trim())}
               className="btn btn-primary rounded-xl px-8 font-normal shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all duration-300"
             >
               Create
@@ -110,9 +130,10 @@ function WorkspaceManager() {
           </div>
         ) : (
           <div className="grid gap-8">
-            {workspaces.map((ws, i) => (
+            {workspaces.map((ws) => (
               <div
-                key={i}
+                key={ws.id}
+                ref={(el) => (workspaceRefs.current[ws.id] = el)}
                 className="bg-gradient-to-r from-base-200/50 to-base-300/30 backdrop-blur-sm rounded-2xl border border-accent/30 overflow-hidden hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/20 transition-all duration-500"
               >
                 {/* Workspace Header */}
@@ -129,7 +150,7 @@ function WorkspaceManager() {
                       <button
                         onClick={() => {
                           if (confirm(`Delete workspace "${ws.name}"?`)) {
-                            deleteWorkspace(i)
+                            deleteWorkspace(ws.id)
                           }
                         }}
                         className="text-2xl btn btn-ghost btn-xs text-error hover:text-error hover:bg-error/20 hover:shadow-lg hover:shadow-error/30 rounded-full transition-all duration-300"
@@ -145,7 +166,7 @@ function WorkspaceManager() {
                   <div className="mb-8 p-4 bg-base-300/30 rounded-xl border border-primary/20">
                     <div className="flex gap-3 items-center">
                       <select
-                        id={`actionType-${i}`}
+                        id={`actionType-${ws.id}`}
                         className="select select-bordered border-secondary/50 bg-base-200/70 focus:border-secondary focus:shadow-lg focus:shadow-secondary/20 rounded-lg"
                       >
                         <option value="chrome">🌐 Web</option>
@@ -153,16 +174,16 @@ function WorkspaceManager() {
                         <option value="terminal">⚡ Terminal</option>
                       </select>
                       <input
-                        id={`actionValue-${i}`}
+                        id={`actionValue-${ws.id}`}
                         placeholder="URL, file path, or command..."
                         className="input input-bordered border-secondary/50 bg-base-200/70 flex-1 placeholder-base-content/50 focus:border-secondary focus:shadow-lg focus:shadow-secondary/20 rounded-lg"
                       />
                       <button
                         onClick={() => {
-                          const type = document.getElementById(`actionType-${i}`).value
-                          const value = document.getElementById(`actionValue-${i}`).value.trim()
-                          addAction(i, type, value)
-                          document.getElementById(`actionValue-${i}`).value = ''
+                          const type = document.getElementById(`actionType-${ws.id}`).value
+                          const value = document.getElementById(`actionValue-${ws.id}`).value.trim()
+                          addAction(ws.id, type, value)
+                          document.getElementById(`actionValue-${ws.id}`).value = ''
                         }}
                         className="btn btn-secondary rounded-lg px-6 hover:shadow-lg hover:shadow-secondary/30 transition-all duration-300"
                       >
@@ -193,7 +214,7 @@ function WorkspaceManager() {
                             </div>
                           </div>
                           <button
-                            onClick={() => deleteAction(i, j)}
+                            onClick={() => deleteAction(ws.id, j)}
                             className="opacity-0 group-hover:opacity-100 btn btn-ghost btn-xs text-error hover:text-error hover:bg-error/20 hover:shadow-lg hover:shadow-error/30 rounded-full transition-all duration-300"
                           >
                             ×
