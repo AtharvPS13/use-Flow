@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 function WorkspaceManager() {
   const [workspaces, setWorkspaces] = useState([])
+  const [workspaceName, setWorkspaceName] = useState('')
 
   useEffect(() => {
     window.electronAPI.loadWorkspaces().then((ws) => {
@@ -82,15 +83,16 @@ function WorkspaceManager() {
         <div className="bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-primary/20 shadow-lg shadow-primary/10">
           <div className="flex gap-4 items-center">
             <input
-              id="workspaceName"
+              value={workspaceName}
+              onChange={(e) => setWorkspaceName(e.target.value)}
               placeholder="Enter workspace name..."
               className="input bg-base-200/50 border border-primary/30 rounded-xl flex-1 text-lg placeholder-base-content/50 focus:border-primary focus:shadow-lg focus:shadow-primary/20 transition-all duration-300"
             />
             <button
               onClick={() => {
-                const name = document.getElementById('workspaceName').value.trim()
+                const name = workspaceName.trim()
                 addWorkspace(name)
-                document.getElementById('workspaceName').value = ''
+                setWorkspaceName('') // clear after add
               }}
               className="btn btn-primary rounded-xl px-8 font-normal shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all duration-300"
             >
