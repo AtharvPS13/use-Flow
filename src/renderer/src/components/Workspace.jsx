@@ -108,9 +108,6 @@ function WorkspaceManager() {
       <div className="container mx-auto p-6 max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
-            useFlow
-          </h1>
           <p className="text-base-content/70">Workspace automation for developers</p>
         </div>
 
