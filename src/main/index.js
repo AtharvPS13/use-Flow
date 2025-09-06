@@ -122,6 +122,7 @@
 // });
 
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { spawn } = require('child_process');
 const { exec } = require('child_process')
 const path = require('path')
 const fs = require('fs')
@@ -203,10 +204,20 @@ ipcMain.handle('load-workspaces', () => {
 })
 
 ipcMain.handle('pick-file', async () => {
-  const result = await dialog.showOpenDialog({ properties: ['openFile', 'openDirectory'] })
-  if (result.canceled) return null
-  return result.filePaths[0]
-})
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile']   // only files
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('pick-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory']   // only folders
+  });
+  if (result.canceled) return null;
+  return result.filePaths[0];
+});
 
 // Starting a workspace
 ipcMain.on('start-workspace', (_, workspace) => {
@@ -230,6 +241,15 @@ ipcMain.on('start-workspace', (_, workspace) => {
               : process.platform === 'darwin'
                 ? `osascript -e 'tell application "Terminal" to do script "${action.value}"'`
                 : `gnome-terminal -- bash -c "${action.value}; exec bash"`
+        }else if (action.type === 'file') {
+          if (process.platform === 'linux') {
+            spawn('xdg-open', [action.value], { detached: true, stdio: 'ignore' }).unref();
+          } else if (process.platform === 'darwin') {
+            spawn('open', [action.value], { detached: true, stdio: 'ignore' }).unref();
+          } else if (process.platform === 'win32') {
+            spawn('cmd', ['/c', 'start', '', action.value], { detached: true, stdio: 'ignore' }).unref();
+          }
+          return; // don’t call exec() later
         }
         exec(command, (err) => {
           if (err) console.error(`${action.type} launch error:`, err)

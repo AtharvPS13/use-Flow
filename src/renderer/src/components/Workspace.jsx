@@ -49,18 +49,28 @@ function WorkspaceManager() {
     }))
   }
 
-  const addAction = async (workspaceId) => {
+    const addAction = async (workspaceId) => {
     const { type, value } = actionInputs[workspaceId] || {}
     let finalValue = value
-    if (type === 'vscode') {
+
+    if (type === 'file') {
       const pickedFile = await window.electronAPI.pickFile()
       if (!pickedFile) return
       finalValue = pickedFile
+    } else if (type === 'vscode') {
+      const pickedFolder = await window.electronAPI.pickFolder()
+      if (!pickedFolder) return
+      finalValue = pickedFolder
     }
+
     if (!finalValue) return alert('Enter a value!')
+
     const updatedWorkspaces = workspaces.map((ws) =>
-      ws.id === workspaceId ? { ...ws, actions: [...ws.actions, { type, value: finalValue }] } : ws
+      ws.id === workspaceId
+        ? { ...ws, actions: [...ws.actions, { type, value: finalValue }] }
+        : ws
     )
+
     setWorkspaces(updatedWorkspaces)
     saveAll(updatedWorkspaces)
     handleInputChange(workspaceId, 'value', '')
@@ -134,6 +144,8 @@ function WorkspaceManager() {
         return '💻'
       case 'terminal':
         return '⚡'
+      case 'file':
+        return '📁'
       default:
         return '📝'
     }
@@ -213,6 +225,7 @@ function WorkspaceManager() {
                       <option value="chrome">🌐 Chrome Tab</option>
                       <option value="vscode">💻 VS Code File</option>
                       <option value="terminal">⚡ Terminal</option>
+                      <option value="file"> 📁 File</option>
                     </select>
                     <input
                       value={actionInputs[ws.id]?.value || ''}

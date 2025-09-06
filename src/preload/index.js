@@ -4,6 +4,7 @@ syncBlockedActions: ((apps) => ipcRenderer.invoke('syncBlockedActions', apps),
     loadWorkspaces: () => ipcRenderer.invoke('load-workspaces'),
     saveWorkspaces: (data) => ipcRenderer.send('save-workspaces', data),
     pickFile: () => ipcRenderer.invoke('pick-file'),
+    pickFolder: () => ipcRenderer.invoke('pick-folder'),
     startWorkspace: (ws) => ipcRenderer.send('start-workspace', ws),
     stopWorkspace: (workspaceId) => {
       // Get the blocked apps from the workspace data
