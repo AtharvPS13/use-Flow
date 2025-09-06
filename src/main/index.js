@@ -238,6 +238,21 @@ ipcMain.on('start-workspace', (_, workspace) => {
     }, index * 500);
   });
 
+  // Stop and unblock apps for a specific workspace
+  ipcMain.on('stop-workspace', async (_, blockedApps) => {
+    try {
+      for (const appName of blockedApps) {
+        await blocker.remove(appName); // Unblock the app
+      }
+      console.log('All blocked apps have been unblocked.');
+    
+    } catch (err) {
+      console.error('Error unblocking apps:', err);
+    }
+  });
+
+
+
   // Sync blocked apps
   if (workspace.blockedActions?.length > 0) {
     ipcMain.handle('syncBlockedActions', async (_, blockedApps) => {

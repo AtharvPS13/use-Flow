@@ -135,6 +135,19 @@ function WorkspaceManager() {
     }
   }
 
+  const stopWorkspace = (ws) => {
+    // Trigger IPC call to unblock all apps for the workspace
+    window.electronAPI.stopWorkspace(ws.id);
+
+    // Update workspace to reflect the unblocking of apps
+    const updatedWorkspaces = workspaces.map((w) =>
+      w.id === ws.id ? { ...w, blockedActions: [] } : w
+    );
+    setWorkspaces(updatedWorkspaces);
+    saveAll(updatedWorkspaces);
+  };
+
+
   return (
     <div className="min-h-screen bg-base-100" data-theme="synthwave">
       <div className="container mx-auto p-6 max-w-4xl">
@@ -240,6 +253,8 @@ function WorkspaceManager() {
                 {/* Workspace Controls */}
                 <div className="flex gap-3 justify-end mt-2">
                   <button onClick={() => startWorkspace(ws)} className="btn btn-primary">▶ Start</button>
+                  <button onClick={() => stopWorkspace(ws)} className="btn btn-warning">⏹ Stop</button>
+
                   <button onClick={() => deleteWorkspace(ws.id)} className="btn btn-error">🗑 Delete</button>
                 </div>
               </div>
