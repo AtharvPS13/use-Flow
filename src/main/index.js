@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron')
-const { spawn } = require('child_process')
-const { exec } = require('child_process')
+const { spawn, exec } = require('child_process')
 const path = require('path')
 const fs = require('fs')
 const blocker = require('../../src/main/appblocker.js')
@@ -8,11 +7,14 @@ const blocker = require('../../src/main/appblocker.js')
 const dataPath = path.join(app.getPath('userData'), 'workspaces.json')
 const BLOCKED_APPS = require('../../src/main/apps.json')
 
+/**
+ * Unblock all apps (called on quit)
+ */
 async function unblockAllApps() {
   try {
-    const blockedApps = await blocker.list() // Get the list of currently blocked apps
+    const blockedApps = await blocker.list()
     for (const appName of blockedApps) {
-      await blocker.remove(appName) // Unblock each app
+      await blocker.remove(appName)
     }
     console.log('All blocked apps have been unblocked.')
   } catch (err) {
@@ -20,6 +22,9 @@ async function unblockAllApps() {
   }
 }
 
+/**
+ * Create main window
+ */
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -45,10 +50,11 @@ function createWindow() {
   }
 }
 
-// App events
+/**
+ * App lifecycle
+ */
 app.whenReady().then(() => {
   createWindow()
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -58,7 +64,17 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// Workspaces
+app.on('will-quit', async () => {
+  try {
+    await unblockAllApps()
+  } catch (err) {
+    console.error('Error unblocking apps during quit:', err)
+  }
+})
+
+/**
+ * Workspace persistence
+ */
 ipcMain.on('save-workspaces', (_, data) => {
   try {
     const dir = path.dirname(dataPath)
@@ -81,22 +97,20 @@ ipcMain.handle('load-workspaces', () => {
 })
 
 ipcMain.handle('pick-file', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile']   // only files
-  })
+  const result = await dialog.showOpenDialog({ properties: ['openFile'] })
   if (result.canceled) return null
   return result.filePaths[0]
 })
 
 ipcMain.handle('pick-folder', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory']   // only folders
-  })
+  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
   if (result.canceled) return null
   return result.filePaths[0]
 })
 
-// 🔹 Register syncBlockedActions ONCE globally
+/**
+ * Sync blocked apps
+ */
 ipcMain.handle('syncBlockedActions', async (_, blockedApps) => {
   try {
     await blocker.clear()
@@ -115,12 +129,15 @@ ipcMain.handle('syncBlockedActions', async (_, blockedApps) => {
   }
 })
 
-// Starting a workspace
+/**
+ * Start workspace → launches apps & files
+ */
 ipcMain.on('start-workspace', (_, workspace) => {
   workspace.actions.forEach((action, index) => {
     setTimeout(() => {
       try {
         let command = ''
+
         if (action.type === 'chrome') {
           command =
             process.platform === 'win32'
@@ -145,40 +162,39 @@ ipcMain.on('start-workspace', (_, workspace) => {
           } else if (process.platform === 'win32') {
             spawn('cmd', ['/c', 'start', '', action.value], { detached: true, stdio: 'ignore' }).unref()
           }
-          return // don’t call exec() later
+          return
+        } else {
+          // Fallback: treat value as a custom command
+          command = action.value
         }
-        exec(command, (err) => {
-          if (err) console.error(`${action.type} launch error:`, err)
-        })
+
+        if (command) {
+          exec(command, (err) => {
+            if (err) console.error(`${action.type} launch error:`, err)
+          })
+        }
       } catch (err) {
         console.error(`Error executing action ${action.type}:`, err)
       }
-    }, index * 500)
+    }, index * 500) // delay between actions
   })
 
-  // Stop and unblock apps for a specific workspace
-  ipcMain.on('stop-workspace', async (_, blockedApps) => {
-    try {
-      for (const appName of blockedApps) {
-        await blocker.remove(appName) // Unblock the app
-      }
-      console.log('All blocked apps have been unblocked.')
-    } catch (err) {
-      console.error('Error unblocking apps:', err)
-    }
-  })
-
-  // 🔹 Just invoke here (don’t re-register handler)
+  // Sync blocked apps if workspace has them
   if (workspace.blockedActions?.length > 0) {
-    // ipcMain.invoke('syncBlockedActions', workspace.blockedActions)
+    ipcMain.emit('syncBlockedActions', null, workspace.blockedActions)
   }
 })
 
-// Unblock all apps on quit
-app.on('will-quit', async () => {
+/**
+ * Stop workspace → unblock apps
+ */
+ipcMain.on('stop-workspace', async (_, blockedApps) => {
   try {
-    await unblockAllApps()
+    for (const appName of blockedApps) {
+      await blocker.remove(appName)
+    }
+    console.log('Workspace stopped, apps unblocked.')
   } catch (err) {
-    console.error('Error unblocking apps during quit:', err)
+    console.error('Error unblocking apps:', err)
   }
 })
