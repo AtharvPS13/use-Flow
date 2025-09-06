@@ -25,7 +25,7 @@ A desktop productivity app built with **Electron.js** that helps you manage work
 ## 📸 Screenshots
 
 ### Home Screen  
-![Home Screen](https://github.com/akshW88/Exam-Bud/blob/e9a4719439f091fcf2826992f164f2a0xc0a84cde/Screenshot1.png)
+![Home Screen](https://github.com/akshW88/Exam-Bud/blob/e9a4719439f091fcf2826992f164f2a0c0a84cde/Screenshot1.png)
 
 ### Main Page  
 ![Main Page](https://github.com/akshW88/Exam-Bud/blob/e9a4719439f091fcf2826992f164f2a0c0a84cde/Screenshot2.png)
