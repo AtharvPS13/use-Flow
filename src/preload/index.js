@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadWorkspaces: () => ipcRenderer.invoke('load-workspaces'),
   saveWorkspaces: (data) => ipcRenderer.send('save-workspaces', data),
   startWorkspace: (ws) => ipcRenderer.send('start-workspace', ws),
-  stopWorkspace: (workspaceId) => ipcRenderer.send('stop-workspace', workspaceId),
+  stopWorkspace: (ws) => ipcRenderer.send('stop-workspace', ws),
+
 
   // File/folder picking
   pickFile: () => ipcRenderer.invoke('pick-file'),

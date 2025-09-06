@@ -156,14 +156,16 @@ function WorkspaceManager() {
     }
   }
 
-  const stopWorkspace = (ws) => {
-    window.electronAPI.stopWorkspace(ws.id)
-    const updatedWorkspaces = workspaces.map((w) =>
-      w.id === ws.id ? { ...w, blockedActions: [] } : w
-    )
-    setWorkspaces(updatedWorkspaces)
-    saveAll(updatedWorkspaces)
-  }
+const stopWorkspace = (ws) => {
+  window.electronAPI.stopWorkspace(ws)  // tell main to unblock
+  // Don't wipe ws.blockedActions here — keep them in UI
+  const updatedWorkspaces = workspaces.map((w) =>
+    w.id === ws.id ? { ...w } : w
+  )
+  setWorkspaces(updatedWorkspaces)
+  saveAll(updatedWorkspaces)
+}
+
 
   return (
     <div className="min-h-screen bg-base-100" data-theme="synthwave">

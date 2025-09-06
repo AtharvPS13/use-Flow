@@ -188,12 +188,12 @@ ipcMain.on('start-workspace', (_, workspace) => {
 /**
  * Stop workspace → unblock apps
  */
-ipcMain.on('stop-workspace', async (_, blockedApps) => {
+ipcMain.on('stop-workspace', async (_, workspace) => {
   try {
-    for (const appName of blockedApps) {
+    for (const appName of workspace.blockedActions || []) {
       await blocker.remove(appName)
     }
-    console.log('Workspace stopped, apps unblocked.')
+    console.log(`Workspace ${workspace.id} stopped, apps unblocked.`)
   } catch (err) {
     console.error('Error unblocking apps:', err)
   }
