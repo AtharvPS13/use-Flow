@@ -113,6 +113,11 @@ function WorkspaceManager() {
 
   const startWorkspace = (ws) => {
     window.electronAPI.startWorkspace(ws)
+
+    if (ws.blockedActions?.length > 0) {
+      window.electronAPI.syncBlockedActions(ws.blockedActions);
+    }
+
     const updatedWorkspaces = workspaces.map((w) =>
       w.id === ws.id ? { ...w, lastOpened: Date.now() } : w
     )
