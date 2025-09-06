@@ -49,7 +49,7 @@ function WorkspaceManager() {
     }))
   }
 
-    const addAction = async (workspaceId) => {
+  const addAction = async (workspaceId) => {
     const { type, value } = actionInputs[workspaceId] || {}
     let finalValue = value
 
@@ -61,6 +61,9 @@ function WorkspaceManager() {
       const pickedFolder = await window.electronAPI.pickFolder()
       if (!pickedFolder) return
       finalValue = pickedFolder
+    } else if (type === 'app') {
+      if (!value) return alert('Enter an app name!')
+      finalValue = value // just take the app name string
     }
 
     if (!finalValue) return alert('Enter a value!')
@@ -146,16 +149,15 @@ function WorkspaceManager() {
         return '⚡'
       case 'file':
         return '📁'
+      case 'app':
+        return '🖥️'
       default:
         return '📝'
     }
   }
 
   const stopWorkspace = (ws) => {
-    // Trigger IPC call to unblock all apps for the workspace
     window.electronAPI.stopWorkspace(ws.id)
-
-    // Update workspace to reflect the unblocking of apps
     const updatedWorkspaces = workspaces.map((w) =>
       w.id === ws.id ? { ...w, blockedActions: [] } : w
     )
@@ -226,11 +228,12 @@ function WorkspaceManager() {
                       <option value="vscode">💻 VS Code File</option>
                       <option value="terminal">⚡ Terminal</option>
                       <option value="file"> 📁 File</option>
+                      <option value="app">🖥️ App</option>
                     </select>
                     <input
                       value={actionInputs[ws.id]?.value || ''}
                       onChange={(e) => handleInputChange(ws.id, 'value', e.target.value)}
-                      placeholder="Enter URL or File Path"
+                      placeholder="Enter URL, File Path, or App Name"
                       className="input input-bordered input-sm flex-1 min-w-0"
                     />
                     <button onClick={() => addAction(ws.id)} className="btn btn-success btn-sm">

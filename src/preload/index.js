@@ -1,24 +1,23 @@
 const { contextBridge, ipcRenderer } = require('electron')
-syncBlockedActions: ((apps) => ipcRenderer.invoke('syncBlockedActions', apps),
-  contextBridge.exposeInMainWorld('electronAPI', {
-    loadWorkspaces: () => ipcRenderer.invoke('load-workspaces'),
-    saveWorkspaces: (data) => ipcRenderer.send('save-workspaces', data),
-    pickFile: () => ipcRenderer.invoke('pick-file'),
-    pickFolder: () => ipcRenderer.invoke('pick-folder'),
-    startWorkspace: (ws) => ipcRenderer.send('start-workspace', ws),
-    stopWorkspace: (workspaceId) => {
-      // Get the blocked apps from the workspace data
-      const workspace = workspaces.find((ws) => ws.id === workspaceId)
-      if (workspace && workspace.blockedActions) {
-        // Send unblock request to main process
-        ipcRenderer.send('stop-workspace', workspace.blockedActions)
-      }
-    },
-    addBlockedAction: (id, app) =>
-      ipcRenderer.send('appblock:add-workspace', { workspaceId: id, appName: app }),
-    removeBlockedAction: (id, app) =>
-      ipcRenderer.send('appblock:remove-workspace', { workspaceId: id, appName: app }),
 
-    // NEW: sync blocked apps when Start button clicked
-    syncBlockedActions: (apps) => ipcRenderer.invoke('syncBlockedActions', apps)
-  }))
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Workspaces
+  loadWorkspaces: () => ipcRenderer.invoke('load-workspaces'),
+  saveWorkspaces: (data) => ipcRenderer.send('save-workspaces', data),
+  startWorkspace: (ws) => ipcRenderer.send('start-workspace', ws),
+  stopWorkspace: (workspaceId) => ipcRenderer.send('stop-workspace', workspaceId),
+
+  // File/folder picking
+  pickFile: () => ipcRenderer.invoke('pick-file'),
+  pickFolder: () => ipcRenderer.invoke('pick-folder'),
+
+  // App blocking
+  addBlockedAction: (id, app) =>
+    ipcRenderer.send('appblock:add-workspace', { workspaceId: id, appName: app }),
+  removeBlockedAction: (id, app) =>
+    ipcRenderer.send('appblock:remove-workspace', { workspaceId: id, appName: app }),
+  syncBlockedActions: (apps) => ipcRenderer.invoke('syncBlockedActions', apps),
+
+  // 🚀 New: open any app by name (e.g., "firefox", "code", "gedit")
+  openApp: (appName) => ipcRenderer.send('open-app', appName),
+})
