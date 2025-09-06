@@ -11,7 +11,7 @@ function WorkspaceManager() {
     window.electronAPI.loadWorkspaces().then((ws) => {
       if (ws) {
         ws.sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0))
-        setWorkspaces(ws.map(w => ({ ...w, blockedActions: w.blockedActions || [] })))
+        setWorkspaces(ws.map((w) => ({ ...w, blockedActions: w.blockedActions || [] })))
         const inputs = {}
         let maxId = 0
         ws.forEach((w) => {
@@ -68,7 +68,7 @@ function WorkspaceManager() {
 
   const addBlockedApp = (workspaceId) => {
     if (!newBlockedApp[workspaceId]) return
-    const updatedWorkspaces = workspaces.map(w =>
+    const updatedWorkspaces = workspaces.map((w) =>
       w.id === workspaceId
         ? { ...w, blockedActions: [...w.blockedActions, newBlockedApp[workspaceId]] }
         : w
@@ -76,13 +76,13 @@ function WorkspaceManager() {
     setWorkspaces(updatedWorkspaces)
     saveAll(updatedWorkspaces)
     window.electronAPI.addBlockedAction(workspaceId, newBlockedApp[workspaceId])
-    setNewBlockedApp(prev => ({ ...prev, [workspaceId]: '' }))
+    setNewBlockedApp((prev) => ({ ...prev, [workspaceId]: '' }))
   }
 
   const removeBlockedAction = (workspaceId, appName) => {
-    const updatedWorkspaces = workspaces.map(w =>
+    const updatedWorkspaces = workspaces.map((w) =>
       w.id === workspaceId
-        ? { ...w, blockedActions: w.blockedActions.filter(a => a !== appName) }
+        ? { ...w, blockedActions: w.blockedActions.filter((a) => a !== appName) }
         : w
     )
     setWorkspaces(updatedWorkspaces)
@@ -115,7 +115,7 @@ function WorkspaceManager() {
     window.electronAPI.startWorkspace(ws)
 
     if (ws.blockedActions?.length > 0) {
-      window.electronAPI.syncBlockedActions(ws.blockedActions);
+      window.electronAPI.syncBlockedActions(ws.blockedActions)
     }
 
     const updatedWorkspaces = workspaces.map((w) =>
@@ -128,30 +128,32 @@ function WorkspaceManager() {
 
   const getActionIcon = (type) => {
     switch (type) {
-      case 'chrome': return '🌐'
-      case 'vscode': return '💻'
-      case 'terminal': return '⚡'
-      default: return '📝'
+      case 'chrome':
+        return '🌐'
+      case 'vscode':
+        return '💻'
+      case 'terminal':
+        return '⚡'
+      default:
+        return '📝'
     }
   }
 
   const stopWorkspace = (ws) => {
     // Trigger IPC call to unblock all apps for the workspace
-    window.electronAPI.stopWorkspace(ws.id);
+    window.electronAPI.stopWorkspace(ws.id)
 
     // Update workspace to reflect the unblocking of apps
     const updatedWorkspaces = workspaces.map((w) =>
       w.id === ws.id ? { ...w, blockedActions: [] } : w
-    );
-    setWorkspaces(updatedWorkspaces);
-    saveAll(updatedWorkspaces);
-  };
-
+    )
+    setWorkspaces(updatedWorkspaces)
+    saveAll(updatedWorkspaces)
+  }
 
   return (
     <div className="min-h-screen bg-base-100" data-theme="synthwave">
       <div className="container mx-auto p-6 max-w-4xl">
-
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-base-content/70">Workspace automation for developers</p>
@@ -168,7 +170,10 @@ function WorkspaceManager() {
                 placeholder="Workspace name (e.g., React Project)"
                 className="input input-bordered input-primary flex-1"
               />
-              <button onClick={() => addWorkspace(workspaceName.trim())} className="btn btn-primary">
+              <button
+                onClick={() => addWorkspace(workspaceName.trim())}
+                className="btn btn-primary"
+              >
                 + Add
               </button>
             </div>
@@ -186,7 +191,10 @@ function WorkspaceManager() {
           )}
 
           {workspaces.map((ws) => (
-            <div key={ws.id} className="card bg-base-200 shadow-xl border border-accent/20 hover:border-accent/40 transition-colors">
+            <div
+              key={ws.id}
+              className="card bg-base-200 shadow-xl border border-accent/20 hover:border-accent/40 transition-colors"
+            >
               <div className="card-body">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="card-title text-accent text-2xl">💼 {ws.name}</h3>
@@ -212,21 +220,33 @@ function WorkspaceManager() {
                       placeholder="Enter URL or File Path"
                       className="input input-bordered input-sm flex-1 min-w-0"
                     />
-                    <button onClick={() => addAction(ws.id)} className="btn btn-success btn-sm">Add</button>
+                    <button onClick={() => addAction(ws.id)} className="btn btn-success btn-sm">
+                      Add
+                    </button>
                   </div>
                 </div>
 
                 {/* Actions List */}
                 {ws.actions.map((action, j) => (
-                  <div key={j} className="flex items-center justify-between bg-base-100 p-3 rounded-lg border border-base-300 mb-2">
+                  <div
+                    key={j}
+                    className="flex items-center justify-between bg-base-100 p-3 rounded-lg border border-base-300 mb-2"
+                  >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{getActionIcon(action.type)}</span>
                       <div>
-                        <div className="font-medium text-sm uppercase tracking-wide text-primary">{action.type}</div>
+                        <div className="font-medium text-sm uppercase tracking-wide text-primary">
+                          {action.type}
+                        </div>
                         <div className="text-base-content/80 break-all">{action.value}</div>
                       </div>
                     </div>
-                    <button onClick={() => deleteAction(ws.id, j)} className="btn btn-ghost btn-xs text-error hover:bg-error/20">✕</button>
+                    <button
+                      onClick={() => deleteAction(ws.id, j)}
+                      className="btn btn-ghost btn-xs text-error hover:bg-error/20"
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))}
 
@@ -235,27 +255,42 @@ function WorkspaceManager() {
                   <input
                     type="text"
                     value={newBlockedApp[ws.id] || ''}
-                    onChange={(e) => setNewBlockedApp(prev => ({ ...prev, [ws.id]: e.target.value }))}
+                    onChange={(e) =>
+                      setNewBlockedApp((prev) => ({ ...prev, [ws.id]: e.target.value }))
+                    }
                     placeholder="Enter app to block"
                     className="input input-bordered flex-1"
                   />
-                  <button onClick={() => addBlockedApp(ws.id)} className="btn btn-primary">Block</button>
+                  <button onClick={() => addBlockedApp(ws.id)} className="btn btn-primary">
+                    Block
+                  </button>
                 </div>
                 <ul className="mt-2">
                   {ws.blockedActions.map((app, i) => (
                     <li key={i} className="flex items-center justify-between gap-2 border-b py-1">
                       {app}
-                      <button onClick={() => removeBlockedAction(ws.id, app)} className="btn btn-ghost btn-xs text-error">✕</button>
+                      <button
+                        onClick={() => removeBlockedAction(ws.id, app)}
+                        className="btn btn-ghost btn-xs text-error"
+                      >
+                        ✕
+                      </button>
                     </li>
                   ))}
                 </ul>
 
                 {/* Workspace Controls */}
                 <div className="flex gap-3 justify-end mt-2">
-                  <button onClick={() => startWorkspace(ws)} className="btn btn-primary">▶ Start</button>
-                  <button onClick={() => stopWorkspace(ws)} className="btn btn-warning">⏹ Stop</button>
+                  <button onClick={() => startWorkspace(ws)} className="btn btn-primary">
+                    ▶ Start
+                  </button>
+                  <button onClick={() => stopWorkspace(ws)} className="btn btn-warning">
+                    ⏹ Stop
+                  </button>
 
-                  <button onClick={() => deleteWorkspace(ws.id)} className="btn btn-error">🗑 Delete</button>
+                  <button onClick={() => deleteWorkspace(ws.id)} className="btn btn-error">
+                    🗑 Delete
+                  </button>
                 </div>
               </div>
             </div>
