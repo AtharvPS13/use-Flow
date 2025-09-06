@@ -132,7 +132,7 @@ Description=App Blocker Service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/node /usr/local/bin/app-blocker.js
+ExecStart=/bin/bash -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"; NODE=$(command -v node); $NODE /usr/local/bin/app-blocker.js'
 Restart=always
 User=root
 Group=root

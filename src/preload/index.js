@@ -1,46 +1,23 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer } = require('electron');
+syncBlockedActions: (apps) => ipcRenderer.invoke('syncBlockedActions', apps),
 
-// ---- App Blocker API ----
-contextBridge.exposeInMainWorld('appBlocker', {
-  list:    () => ipcRenderer.invoke('appblock:list'),
-  add:     (name) => ipcRenderer.invoke('appblock:add', name),
-  remove:  (name) => ipcRenderer.invoke('appblock:remove', name),
-  pause:   () => ipcRenderer.invoke('appblock:pause'),
-  resume:  () => ipcRenderer.invoke('appblock:resume'),
-  clear:   () => ipcRenderer.invoke('appblock:clear'),
-})
 
-// ---- General Electron API ----
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Old "openApp" from your vanilla project
-  openApp: (appPath) => ipcRenderer.send('open-app', appPath),
-
-  // Workspace-related APIs
-  loadWorkspaces: () => {
-    console.log('Loading workspaces...')
-    return ipcRenderer.invoke('load-workspaces')
+  loadWorkspaces: () => ipcRenderer.invoke('load-workspaces'),
+  saveWorkspaces: (data) => ipcRenderer.send('save-workspaces', data),
+  pickFile: () => ipcRenderer.invoke('pick-file'),
+  startWorkspace: (ws) => ipcRenderer.send('start-workspace', ws),
+  stopWorkspace: (workspaceId) => {
+    // Get the blocked apps from the workspace data
+    const workspace = workspaces.find(ws => ws.id === workspaceId);
+    if (workspace && workspace.blockedActions) {
+      // Send unblock request to main process
+      ipcRenderer.send('stop-workspace', workspace.blockedActions);
+    }
   },
-
-  saveWorkspaces: (data) => {
-    console.log('Saving workspaces:', data.length)
-    return ipcRenderer.send('save-workspaces', data)
-  },
-
-  startWorkspace: (workspace) => {
-    console.log('Starting workspace:', workspace.name)
-    return ipcRenderer.send('start-workspace', workspace)
-  },
-
-  pickFile: () => {
-    console.log('Opening file picker...')
-    return ipcRenderer.invoke('pick-file')
-  }
-})
-
-// ---- Utilities ----
-contextBridge.exposeInMainWorld('utils', {
-  platform: process.platform,
-  log: (message) => {
-    console.log('[Renderer]:', message)
-  }
-})
+  addBlockedAction: (id, app) => ipcRenderer.send('appblock:add-workspace', { workspaceId: id, appName: app }),
+  removeBlockedAction: (id, app) => ipcRenderer.send('appblock:remove-workspace', { workspaceId: id, appName: app }),
+  
+  // NEW: sync blocked apps when Start button clicked
+  syncBlockedActions: (apps) => ipcRenderer.invoke('syncBlockedActions', apps),
+});
