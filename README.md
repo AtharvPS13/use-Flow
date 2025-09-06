@@ -1,69 +1,67 @@
-    # 🚀 Workflow Manager
+# 🚀 Workflow Manager
 
-    A desktop productivity app built with **Electron.js** that helps you manage workspaces, launch tools efficiently, and stay focused by blocking distracting applications.
+A desktop productivity app built with **Electron.js** that helps you manage workspaces, launch tools efficiently, and stay focused by blocking distracting applications.
 
-    ---
+---
 
-    ## ✨ Features
+## ✨ Features
 
-    - **Workspace Manager** – Create and switch between different workspaces, each with its own set of apps, scripts, and workflows.  
-    - **App Blocker** – Temporarily block distracting apps (e.g., browsers, games, social media apps) while you work.    
-    - **Persistent Storage** – User data (workspaces, blocked apps) is saved locally in JSON for easy persistence.  
+- **Workspace Manager** – Create and switch between different workspaces, each with its own set of apps, scripts, and workflows.  
+- **App Blocker** – Temporarily block distracting apps (e.g., browsers, games, social media apps) while you work.    
+- **Persistent Storage** – User data (workspaces, blocked apps) is saved locally in JSON for easy persistence.  
 
-    ---
+---
 
-    ## 🛠️ Tech Stack
+## 🛠️ Tech Stack
 
-    - [Electron.js](https://www.electronjs.org/) – Desktop app framework  
-    - [React](https://react.dev/) – UI rendering  
-    - [TailwindCSS](https://tailwindcss.com/) – Styling  
-    - [Node.js](https://nodejs.org/) – Backend logic & APIs  
-    - [DaisyUI](https://daisyui.com/) – UI components 
+- [Electron.js](https://www.electronjs.org/) – Desktop app framework  
+- [React](https://react.dev/) – UI rendering  
+- [TailwindCSS](https://tailwindcss.com/) – Styling  
+- [Node.js](https://nodejs.org/) – Backend logic & APIs  
+- [DaisyUI](https://daisyui.com/) – UI components 
 
-    ---
+---
 
-    ## 📸 Screenshots
+## 📸 Screenshots
 
-    ### Home Screen
-    ![Home Screen](./assets/Screenshot1.png)
+### Home Screen  
+![Home Screen](https://github.com/akshW88/Exam-Bud/blob/e9a4719439f091fcf2826992f164f2a0xc0a84cde/Screenshot1.png)
 
-    ![Main page](./assets/Screenshot2.png)
+### Main Page  
+![Main Page](https://github.com/akshW88/Exam-Bud/blob/e9a4719439f091fcf2826992f164f2a0c0a84cde/Screenshot2.png)
 
-    ---
+---
 
-    ## Issues
+## ⚠️ Known Issues
 
-    1. Does not fully support windows
+1. Does not fully support Windows.  
+2. Has issues on machines running **nvm**.
 
-    2. Has issues with machines running nvm
+---
 
+## 🚀 Getting Started
 
+1. Clone the repo:
 
-    ---
+```bash
+git clone https://github.com/your-username/workflow-manager.git
+cd workflow-manager
+```
 
+2. Install dependencies:
 
-    Getting Started
-    1. Clone the repo
+```bash
+npm install
+```
 
-    ```bash
-    git clone https://github.com/your-username/workflow-manager.git
-    cd workflow-manager
-    ```
+3. Start the App Blocker service
 
-    2. Install dependencies
+```bash
+sudo systemctl start app-blocker.service
+```
 
-    ```bash
-    npm install
-    ```
+4. Run the app
 
-    3. Execute this command in terminal
-
-    ```**(in bash)**
-        sudo systemctl start app-blocker.service
-    ```
-
-    4. Run the app
-
-    ```bash
-    npm start
-    ```
+```bash
+npm start
+```
